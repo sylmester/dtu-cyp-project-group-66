@@ -131,13 +131,7 @@ for learning_rate in learning_rates:
     # ==================================================
     # SAVE THIS LEARNING RATE'S RESULTS
     # ==================================================
-    # Example:
-    #
-    # {
-    #     "learning_rate": 0.03,
-    #     "macro_ST-RAE": 0.74,
-    #     "macro_MCC": 0.10
-    # }
+ 
 
     results.append({
         "learning_rate": learning_rate,
@@ -149,14 +143,6 @@ for learning_rate in learning_rates:
 # --------------------------------------------------
 # 5. Convert all results into a table
 # --------------------------------------------------
-# pandas DataFrame gives us a table like:
-#
-# learning_rate | macro_ST-RAE | macro_MCC
-# -----------------------------------------
-# 0.01          | ...          | ...
-# 0.03          | ...          | ...
-# 0.05          | ...          | ...
-# 0.10          | ...          | ...
 
 results_df = pd.DataFrame(results)
 
@@ -164,11 +150,6 @@ results_df = pd.DataFrame(results)
 # --------------------------------------------------
 # 6. Save the results as a CSV file
 # --------------------------------------------------
-# This makes it easy to:
-# - open the results later
-# - compare experiments
-# - use the results in the report
-# - make new plots without rerunning the models
 
 csv_path = os.path.join(
     output_folder,
@@ -188,8 +169,6 @@ print(f"\nResults saved to: {csv_path}")
 # --------------------------------------------------
 # For regression:
 # LOWER macro ST-RAE is better.
-#
-# idxmin() finds the row with the smallest value.
 
 best_regression = results_df.loc[
     results_df["macro_ST-RAE"].idxmin()
@@ -201,8 +180,6 @@ best_regression = results_df.loc[
 # --------------------------------------------------
 # For classification:
 # HIGHER macro MCC is better.
-#
-# idxmax() finds the row with the largest value.
 
 best_classification = results_df.loc[
     results_df["macro_MCC"].idxmax()
@@ -222,11 +199,6 @@ print("Macro MCC:", best_classification["macro_MCC"])
 # ==================================================
 # 9. REGRESSION PLOT
 # ==================================================
-# This plot shows how regression performance changes
-# when we change the learning rate.
-#
-# Remember:
-# LOWER macro ST-RAE is better.
 
 plt.figure()
 
@@ -260,11 +232,6 @@ print(f"Regression plot saved to: {regression_plot_path}")
 # ==================================================
 # 10. CLASSIFICATION PLOT
 # ==================================================
-# This plot shows how classification performance changes
-# when we change the learning rate.
-#
-# Remember:
-# HIGHER macro MCC is better.
 
 plt.figure()
 
