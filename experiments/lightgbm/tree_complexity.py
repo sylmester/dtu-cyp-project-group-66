@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-num_leaves_values = [10, 31, 60, 150]
+num_leaves_values = [2, 4, 5, 8, 10, 31, 60, 150]
 
 results = []
 
