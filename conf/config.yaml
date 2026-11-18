@@ -4,10 +4,10 @@
 defaults:
   - _self_
   - readout: mlp
-  - model: atom_jepa
+  - model: mol_jepa
 
-task: regression        # regression | classification
-data: data              # Output folder of prepare_data.py
+task: regression # regression | classification
+data: data # Output folder of prepare_data.py
 seed: 42
 device: cuda
 

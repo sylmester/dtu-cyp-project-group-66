@@ -15,7 +15,7 @@ print(out)
 print("Predicted embeddings shape:", out.predictions.shape)
 print("CLS token shape:", out.cls.shape)
 print("Latent embeddings shape:", out.embeddings.shape)
-
+print("All 12 modality embeddings flattened", out.predictions.flatten(1).shape) # All 12 modality embeddings flattened
 
 
 cfg = {
@@ -29,7 +29,6 @@ cfg = {
 
 from omegaconf import OmegaConf
 cfg = OmegaConf.create(cfg)
-#cfg.name, cfg.readout.hidden_dim
 
 task = 'regression'
 targets = REG if task == 'regression' else CLS

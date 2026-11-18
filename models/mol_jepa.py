@@ -17,7 +17,7 @@ class SMILES(Dataset):
         return len(self.frame)
 
     def __getitem__(self, i):
-        return self.frame.iloc[i].SMILES
+        return {'smiles': self.frame.iloc[i].SMILES, 'y': torch.tensor(self.y[i])}
 
 
 class MolJEPAModel(nn.Module):
@@ -28,7 +28,8 @@ class MolJEPAModel(nn.Module):
         self.encoder = AutoModel.from_pretrained("Flogrammer/Mol-JEPA", trust_remote_code=True)
         self.encoder._set_gradient_checkpointing(not cfg.freeze_encoder)
         self.encoder.requires_grad_(not cfg.freeze_encoder)
-        self.readout = build_readout(readout, 512, n_targets).to(self.encoder.device)
+        #self.readout = build_readout(readout, 512, n_targets).to(self.encoder.device)
+        self.readout = build_readout(readout, 6144, n_targets).to(self.encoder.device)
 
     @property
     def device(self):
@@ -45,13 +46,13 @@ class MolJEPAModel(nn.Module):
 
     def loader(self, frame, targets, batch_size, shuffle=False):
         return DataLoader(SMILES(frame, targets), batch_size=batch_size,
-                          shuffle=shuffle, collate_fn=self.encoder.collate, num_workers=0)
+                          shuffle=shuffle, num_workers=0)
 
     def param_groups(self):
         groups = [{'params': list(self.readout.parameters()), 'lr': self.cfg.readout_lr}]
-        # if not self.cfg.freeze_encoder:
-        #     groups.append({'params': list(self.encoder.parameters()), 'lr': self.cfg.encoder_lr})
+
         return groups
 
     def forward(self, batch):
-        return self.readout(self.encoder(batch))  # Differentiable forward; do NOT use encoder.embed().
+        #return self.readout(self.encoder(batch["smiles"]).cls)  # Differentiable forward; do NOT use encoder.embed().
+        return self.readout(self.encoder(batch["smiles"]).predictions.flatten(1)) # Now taking all 12 modalitites size 512*12 = 6144

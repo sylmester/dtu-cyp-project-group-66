@@ -6,3 +6,5 @@ data/
 runs/
 outputs/*
 !outputs/.gitkeep
+
+.vscode
