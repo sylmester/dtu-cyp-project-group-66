@@ -7,10 +7,10 @@ import os
 import pandas as pd
 
 
-learning_rates = [0.01, 0.03, 0.05, 0.07, 0.10, 0.15]
-num_leaves_values = [0.01, 0.03, 0.05, 0.07, 0.10, 0.15]
-n_estimators_values = [0.01, 0.03, 0.05, 0.07, 0.10, 0.15]
-reg_lambda_values = [0.01, 0.03, 0.05, 0.07, 0.10, 0.15]
+learning_rates = [0.01, 0.05, 0.15]
+num_leaves_values = [2, 10]
+n_estimators_values = [500, 5000]
+reg_lambda_values = [0, 5, 50]
 
 results = []
 
@@ -19,7 +19,7 @@ results = []
 output_folder = "experiments/results"
 os.makedirs(output_folder, exist_ok=True)
 
-# We test every cobination which will be: 2*2*2*2=16 combos
+# We test every cobination which will be: 3*2*2*3=36 combos
 
 for learning_rate in learning_rates:
     for num_leaves in num_leaves_values:
