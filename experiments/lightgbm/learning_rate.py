@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 # The learning rates to test and saving the results
 
-learning_rates = [0.01, 0.03, 0.05, 0.07, 0.10, 0.15]
+learning_rates = [0.01, 0.03, 0.05, 0.07, 0.10, 0.15, 0.20, 0.25, 0.30, 0.50]
 
 results = []
 

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 # The num lambda values to test and saving the results
 
-reg_lambda_values = [0, 0.1, 0.5, 1, 5, 10, 20, 50]
+reg_lambda_values = [0, 0.1, 0.5, 1, 5, 10, 20, 50, 75, 100, 200]
 
 results = []
 
