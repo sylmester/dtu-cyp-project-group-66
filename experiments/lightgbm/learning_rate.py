@@ -1,262 +1,122 @@
+# Learning rate testing
+
 import subprocess
 import glob
 import json
 import os
-
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# The learning rates to test and saving the results
 
-# --------------------------------------------------
-# 1. Choose which learning rates we want to test, 0.03 is default LightGBM
-# --------------------------------------------------
-
-
-learning_rates = [0.01, 0.03, 0.05, 0.10]
+learning_rates = [0.01, 0.03, 0.05, 0.07, 0.10, 0.15]
 
 results = []
 
-
-# --------------------------------------------------
-# 3. Create a folder for CSV files and plots
-# -------------------------------------------------
+# Output folder for the experiments
 
 output_folder = "experiments/results"
 os.makedirs(output_folder, exist_ok=True)
 
-# --------------------------------------------------
-# 4. Test every learning rate (we might change the array)
-# --------------------------------------------------
+# We test every learning rate
 
 for learning_rate in learning_rates:
+    print(f"\n Testing learning rate: {learning_rate}\n")
 
-    print("\n-----------------------------------")
-    print(f"Testing learning rate: {learning_rate}")
-    print("-----------------------------------")
+    subprocess.run(["python", 
+                    "finetune.py", 
+                    "model=morgan_rdkit_lgbm", 
+                    "task=regression", 
+                    f"model.params.learning_rate={learning_rate}"], check=True)
 
+    # we find the newest regression run and they are timestamped
 
-    # ==================================================
-    # REGRESSION
-    # ==================================================
-
-    subprocess.run([
-        "python",
-        "finetune.py",
-        "model=morgan_rdkit_lgbm",
-        "task=regression",
-        f"model.params.learning_rate={learning_rate}"
-    ], check=True)
-
-
-    # --------------------------------------------------
-    # Find the newest regression run
-    # --------------------------------------------------
-
-    regression_runs = glob.glob(
-        "runs/regression/morgan_rdkit_lgbm/*"
-    )
-
+    regression_runs = glob.glob("runs/regression/morgan_rdkit_lgbm/*")
     regression_run = sorted(regression_runs)[-1]
 
+    # reading the validation results
 
-    # --------------------------------------------------
-    # Read the regression validation results
-    # Each run contains validation metrics.
-    # These we read and use for model selection 
-    # --------------------------------------------------
-
-    regression_metrics_path = os.path.join(
-        regression_run,
-        "validation_metrics.json"
-    )
-
+    regression_metrics_path = os.path.join(regression_run, "validation_metrics.json")
     with open(regression_metrics_path) as f:
         regression_metrics = json.load(f)
 
-
-    # The main regression metric is macro ST-RAE.
-    #
-    # LOWER is better.
+    # we are only interested in teh macro_ST-RAE metric where for regression, lower is better
 
     macro_st_rae = regression_metrics["macro_ST-RAE"]
 
+    # We then do it for the classification taks
 
-    # ==================================================
-    # CLASSIFICATION
-    # ==================================================
+    subprocess.run(["python", 
+                    "finetune.py", 
+                    "model=morgan_rdkit_lgbm", 
+                    "task=classification", 
+                    f"model.params.learning_rate={learning_rate}"], check=True)
 
-    # Now we run the same learning rate,
-    # but on the classification task.
+    # we find the newest classification run and they are timestamped
 
-    subprocess.run([
-        "python",
-        "finetune.py",
-        "model=morgan_rdkit_lgbm",
-        "task=classification",
-        f"model.params.learning_rate={learning_rate}"
-    ], check=True)
-
-
-    # --------------------------------------------------
-    # Find the newest classification run
-    # --------------------------------------------------
-
-    classification_runs = glob.glob(
-        "runs/classification/morgan_rdkit_lgbm/*"
-    )
-
+    classification_runs = glob.glob("runs/classification/morgan_rdkit_lgbm/*")
     classification_run = sorted(classification_runs)[-1]
 
+    # reading the validation results
 
-    # --------------------------------------------------
-    # Read the classification validation results
-    # --------------------------------------------------
-
-    classification_metrics_path = os.path.join(
-        classification_run,
-        "validation_metrics.json"
-    )
-
+    classification_metrics_path = os.path.join(classification_run, "validation_metrics.json")
     with open(classification_metrics_path) as f:
         classification_metrics = json.load(f)
 
 
-    # The main classification metric is macro MCC.
-    #
-    # HIGHER is better.
+    # we are only interested in the macro_MCC metric where for classification, higher is better
 
     macro_mcc = classification_metrics["macro_MCC"]
 
+    # we save the results
+    results.append({"learning_rate": learning_rate,
+                   "macro_ST-RAE": macro_st_rae,
+                   "macro_MCC": macro_mcc})
 
-    # ==================================================
-    # SAVE THIS LEARNING RATE'S RESULTS
-    # ==================================================
- 
+# turn it into a table and save it in a csv
 
-    results.append({
-        "learning_rate": learning_rate,
-        "macro_ST-RAE": macro_st_rae,
-        "macro_MCC": macro_mcc
-    })
+results_data = pd.DataFrame(results)
+csv_path = os.path.join(output_folder, "learning_rate_results.csv")
+results_data.to_csv(csv_path, index=False)
 
+print("\n The final results are:")
+print(results_data)
 
-# --------------------------------------------------
-# 5. Convert all results into a table
-# --------------------------------------------------
+# We then find the best regression learning rate and the best classification learning rate
 
-results_df = pd.DataFrame(results)
+best_reg = results_data.loc[results_data["macro_ST-RAE"].idxmin()]
+best_class = results_data.loc[results_data["macro_MCC"].idxmax()]
 
+print("\nThe Best regression learning rate is:")
+print(best_reg["learning_rate"])
+print("macro_ST-RAE", best_reg["macro_ST-RAE"])
 
-# --------------------------------------------------
-# 6. Save the results as a CSV file
-# --------------------------------------------------
+print("\nThe Best classification learning rate is:")
+print(best_class["learning_rate"])
+print("macro_MCC", best_class["macro_MCC"])
 
-csv_path = os.path.join(
-    output_folder,
-    "learning_rate_results.csv"
-)
-
-results_df.to_csv(csv_path, index=False)
-
-print("\nFinal results:")
-print(results_df)
-
-print(f"\nResults saved to: {csv_path}")
-
-
-# --------------------------------------------------
-# 7. Find the best regression learning rate
-# --------------------------------------------------
-# For regression:
-# LOWER macro ST-RAE is better.
-
-best_regression = results_df.loc[
-    results_df["macro_ST-RAE"].idxmin()
-]
-
-
-# --------------------------------------------------
-# 8. Find the best classification learning rate
-# --------------------------------------------------
-# For classification:
-# HIGHER macro MCC is better.
-
-best_classification = results_df.loc[
-    results_df["macro_MCC"].idxmax()
-]
-
-
-print("\nBest regression learning rate:")
-print(best_regression["learning_rate"])
-print("Macro ST-RAE:", best_regression["macro_ST-RAE"])
-
-
-print("\nBest classification learning rate:")
-print(best_classification["learning_rate"])
-print("Macro MCC:", best_classification["macro_MCC"])
-
-
-# ==================================================
-# 9. REGRESSION PLOT
-# ==================================================
+# plotting it just so we can visualise it
 
 plt.figure()
-
-plt.plot(
-    results_df["learning_rate"],
-    results_df["macro_ST-RAE"],
-    marker="o"
-)
-
-plt.xlabel("Learning rate")
-plt.ylabel("Macro ST-RAE")
-plt.title("Learning rate vs Regression Performance")
-
+plt.plot(results_data["learning_rate"], results_data["macro_ST-RAE"], marker="o")
+plt.xlabel("Tested learning rates")
+plt.ylabel("macro_ST-RAE")
+plt.title("Learning rate against regression performance")
 plt.grid(True)
 
-regression_plot_path = os.path.join(
-    output_folder,
-    "learning_rate_regression.png"
-)
-
-plt.savefig(
-    regression_plot_path,
-    bbox_inches="tight"
-)
-
+reg_plot_path = os.path.join(output_folder, "learning_rate_reg.png")
+plt.savefig(reg_plot_path, bbox_inches="tight")
 plt.show()
 
-print(f"Regression plot saved to: {regression_plot_path}")
-
-
-# ==================================================
-# 10. CLASSIFICATION PLOT
-# ==================================================
 
 plt.figure()
-
-plt.plot(
-    results_df["learning_rate"],
-    results_df["macro_MCC"],
-    marker="o"
-)
-
-plt.xlabel("Learning rate")
-plt.ylabel("Macro MCC")
-plt.title("Learning rate vs Classification Performance")
-
+plt.plot(results_data["learning_rate"], results_data["macro_MCC"], marker="o")
+plt.xlabel("Tested learning rates")
+plt.ylabel("macro_MCC")
+plt.title("Learning rate against classification performance")
 plt.grid(True)
 
-classification_plot_path = os.path.join(
-    output_folder,
-    "learning_rate_classification.png"
-)
-
-plt.savefig(
-    classification_plot_path,
-    bbox_inches="tight"
-)
-
+class_plot_path = os.path.join(output_folder, "learning_rate_class.png")
+plt.savefig(class_plot_path, bbox_inches="tight")
 plt.show()
-
-print(f"Classification plot saved to: {classification_plot_path}")
+    
