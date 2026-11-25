@@ -29,7 +29,8 @@ class MolJEPAModel(nn.Module):
         self.encoder._set_gradient_checkpointing(not cfg.freeze_encoder)
         self.encoder.requires_grad_(not cfg.freeze_encoder)
         #self.readout = build_readout(readout, 512, n_targets).to(self.encoder.device)
-        self.readout = build_readout(readout, 6144, n_targets).to(self.encoder.device)
+        #self.readout = build_readout(readout, 6144, n_targets).to(self.encoder.device)
+        self.readout = build_readout(readout, cfg.readout_input_dim, n_targets).to(self.encoder.device)
 
     @property
     def device(self):
@@ -54,5 +55,9 @@ class MolJEPAModel(nn.Module):
         return groups
 
     def forward(self, batch):
-        #return self.readout(self.encoder(batch["smiles"]).cls)  # Differentiable forward; do NOT use encoder.embed().
-        return self.readout(self.encoder(batch["smiles"]).predictions.flatten(1)) # Now taking all 12 modalitites size 512*12 = 6144
+        if self.cfg.readout_input_dim == 512:
+            return self.readout(self.encoder(batch["smiles"]).cls)  # Differentiable forward; do NOT use encoder.embed().
+        elif self.cfg.readout_input_dim == 6144:
+            return self.readout(self.encoder(batch["smiles"]).predictions.flatten(1)) # Now taking all 12 modalitites size 512*12 = 6144
+        else: 
+            raise SyntaxError("Expected 512 or 6144 readout_input_dim")

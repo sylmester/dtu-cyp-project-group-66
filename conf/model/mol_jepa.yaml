@@ -8,6 +8,7 @@ model:
   type: mol_jepa
   freeze_encoder: True
   readout_lr: 1.0e-3
+  readout_input_dim: 6144 # 512 | 6144
 
 train:
   epochs: 20
