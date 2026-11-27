@@ -20,7 +20,7 @@ seed = cfg.seed
 
 MORGAN_RDKIT_MLP_RUN = Path(f'runs/{task}/morgan_rdkit_mlp/2026-11-23_16-10-08') # reg 2026-11-23_16-10-08 | clas 2026-11-23_16-54-09
 MOL_JEPA_RUN = Path(f'runs/{task}/mol_jepa/2026-11-23_14-19-52') # reg: 2026-11-23_14-19-52 | clas 2026-11-23_21-30-44
-ATOM_JEPA_RUN = Path(f'runs/{task}/atom_jepa/2026-11-23_16-42-02')
+ATOM_JEPA_RUN = Path(f'runs/{task}/atom_jepa/2026-11-25_17-28-17')
 LGBM_RUN = Path(f'runs/{task}/morgan_rdkit_lgbm/2026-11-25_17-36-57') # reg: 2026-11-25_17-36-57 | cls: 2026-11-25_17-37-16
 
 
@@ -94,15 +94,26 @@ atom_jepa_predict = load_torch_predictor(ATOM_JEPA_RUN, train)
 lgbm_cfg = OmegaConf.load('conf/model/morgan_rdkit_lgbm.yaml')
 lgbm_predict = load_lgbm_predictor(LGBM_RUN, lgbm_cfg.model, cfg.seed)
 
-#ensemble = EnsemblePredictor([morgan_rdkit_mlp_predict])
-#ensemble = EnsemblePredictor([lgbm_predict])
-#ensemble = EnsemblePredictor([mol_jepa_predict])
-#ensemble = EnsemblePredictor([atom_jepa_predict])
-ensemble = EnsemblePredictor([morgan_rdkit_mlp_predict, mol_jepa_predict, lgbm_predict])
-#ensemble = EnsemblePredictor([morgan_rdkit_mlp_predict, mol_jepa_predict, atom_jepa_predict])
 
-validation_predictions = ensemble.predict(val)
-print('Validation:', metrics(val, validation_predictions, targets, task))
 
-test_predictions = ensemble.predict(test)
-print('Test:', metrics(test, test_predictions, targets, task))
+# Try out all combinations
+from itertools import combinations
+
+predictor_names =   ["morgan_rdkit_mlp_predict", "mol_jepa_predict", "lgbm_predict", "atom_jepa_predict"]
+predictors =        [morgan_rdkit_mlp_predict, mol_jepa_predict, lgbm_predict, atom_jepa_predict]
+
+for i in range(len(predictors)):
+
+    current_predictors = list(combinations(predictors, i+1))
+    current_predictor_names = list(combinations(predictor_names, i+1))
+    
+    for comb, name in zip(current_predictors, current_predictor_names):
+        print("Trying combination:", name)
+
+        ensemble = EnsemblePredictor(list(comb))
+
+        validation_predictions = ensemble.predict(val)
+        print('Validation:', metrics(val, validation_predictions, targets, task))
+
+        test_predictions = ensemble.predict(test)
+        print('Test:', metrics(test, test_predictions, targets, task))
